@@ -1,0 +1,47 @@
+using DrWatson
+@quickactivate "project"
+include(srcdir("SIRPetri.jl"))
+using .SIRPetri
+using DataFrames, CSV, Plots
+
+param_sets = [
+    (β = 0.2, γ = 0.1, label = "Слабая эпидемия"),
+    (β = 0.3, γ = 0.1, label = "Умеренная эпидемия"),
+    (β = 0.5, γ = 0.1, label = "Сильная эпидемия"),
+]
+
+tmax = 100.0
+
+function run_experiment(β, γ, tmax)
+    net, u0, _ = SIRPetri.build_sir_network(β, γ)
+    df = SIRPetri.simulate_deterministic(net, u0, (0.0, tmax), saveat = 0.5, rates = [β, γ])
+    peak_I = maximum(df.I)
+    final_R = df.R[end]
+    return (β = β, γ = γ, peak_I = peak_I, final_R = final_R, df = df)
+end
+
+results = []
+for params in param_sets
+    result = run_experiment(params.β, params.γ, tmax)
+    push!(results, result)
+end
+
+df_results = DataFrame(β = [r.β for r in results],
+                        γ = [r.γ for r in results],
+                        peak_I = [r.peak_I for r in results],
+                        final_R = [r.final_R for r in results])
+println("\n=== Результаты ===")
+println(df_results)
+CSV.write(datadir("parameter_study_sir.csv"), df_results)
+
+p = plot(
+    xlabel = "Время",
+    ylabel = "Инфицированные I",
+    title = "Сравнение динамики при разных β",
+)
+for (i, r) in enumerate(results)
+    plot!(p, r.df.time, r.df.I, label = param_sets[i].label, linewidth = 2)
+end
+savefig(plotsdir("parameter_comparison_sir.png"))
+
+println("\nГрафик сохранён в plots/parameter_comparison_sir.png")
