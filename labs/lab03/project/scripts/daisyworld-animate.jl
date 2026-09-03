@@ -1,0 +1,41 @@
+# # Анимация модели Daisyworld
+#
+# Данный скрипт создает видео - анимацию эволюции модели Daisyworld.
+# Анимация наглядно показывает как маргаритки размножаются , умирают
+# и регулируют температуру планеты.
+#
+# ## Подготовка окружения
+using DrWatson
+@quickactivate "project"
+using Agents
+using DataFrames
+using Plots
+using CairoMakie
+
+include(srcdir("daisyworld.jl"))
+
+# ## Инициализация модели 
+model = daisyworld()
+
+# ## Настройка визуализации
+
+daisycolor(a::Daisy) = a.breed
+
+plotkwargs = (
+    agent_color = daisycolor,
+    agent_size = 20,
+    agent_marker = '✩',
+    heatarray = :temperature,
+    heatkwargs = Dict(:colorrange => (-20, 60)),  
+)
+
+# ## Создание видео
+# Генерирутеся 60 кадров и сохраняется в MP4
+
+abmvideo(
+    plotsdir("simulation.mp4"),
+    model;
+    title = "Daisy World",
+    frames = 60,
+    plotkwargs...,
+)

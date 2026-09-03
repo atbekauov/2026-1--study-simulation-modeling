@@ -6,9 +6,10 @@ standalone: true
 self-contained: true
 
 ## Julia support
-# engine: julia
-# julia:
-#   exeflags: ["--project=../project"]
+engine: julia
+
+julia:
+  exeflags: ["--project=../project"]
 
 ## Generic options
 lang: ru-RU
@@ -34,16 +35,25 @@ format:
     toc-depth: 2
   ### Pdf output format
   pdf:
-    # pdf-engine: xelatex
+    pdf-engine: xelatex
+    include-in-header:
+      - text: |
+          \usepackage{polyglossia}
+          \setmainlanguage{russian}
+          \setotherlanguage{english}
+          \setmainfont{FreeSerif}
+          \setsansfont{FreeSans}
+          \setmonofont{FreeMono}
+      - file: _resources/tex/preamble.tex
     ### minted support
     # filters:
-    #   - minted-quarto
+    #  - minted-quarto
     toc: true
     number-sections: true
     colorlinks: false
     toc-depth: 2
     lof: true # List of figures
-    lot: true # List of tables
+    lot: false # List of tables
     #### Document
     documentclass: scrreprt
     papersize: a4
@@ -53,14 +63,13 @@ format:
     babel-lang: russian
     babel-otherlangs: english
     #### Biblatex
-    cite-method: biblatex
-    biblio-style: gost-numeric
-    biblatexoptions:
-      - backend=biber
-      - langhook=extras
-      - autolang=other*
+    # cite-method: biblatex
+    # biblio-style: gost-numeric
+    # biblatexoptions:
+      # - backend=biber
+      # - langhook=extras
+      # - autolang=other*
     #### Misc options
     csquotes: true
     indent: true
-    include-in-header:
-      - file: _resources/tex/preamble.tex
+

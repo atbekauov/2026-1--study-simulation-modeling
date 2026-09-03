@@ -1,0 +1,67 @@
+# # Параметрическое исследование визуализации
+#
+# Скрипт выполняет серию симуляций с различными параметрами модели 
+# и сохраняет изображения состояния мира на шагах 0 , 5 , 40 для каждой
+# комбинации параметров. Позволяет сравнить влияние параметров на
+# пространственное распределение маргориток 
+#
+# ## Подготовка окружения
+
+using DrWatson
+@quickactivate "project"
+using Agents
+using DataFrames
+using CairoMakie
+
+include(srcdir("daisyworld.jl"))
+
+# ## Сетка параметров
+
+param_dict = Dict(
+    :griddims => (30, 30),  
+    :max_age => [25, 40],
+    :init_white => [0.2, 0.8],
+    :init_black => 0.2,
+    :albedo_white => 0.75,
+    :albedo_black => 0.25,
+    :surface_albedo => 0.4,
+    :solar_change => 0.005,
+    :solar_luminosity => 1.0,
+    :scenario => :default,
+    :seed => 165,
+)
+
+# ## Цикл по всем комбинациям параметров 
+
+
+params_list = dict_list(param_dict)
+
+for params in params_list
+    model = daisyworld(; params...)
+    
+    daisycolor(a::Daisy) = a.breed
+    
+    plotkwargs = (
+        agent_color = daisycolor,
+        agent_size = 20,
+        agent_marker = '✩',
+        heatarray = :temperature,
+        heatkwargs = Dict(:colorrange => (-20, 60)),
+    )
+    
+    plt1, _ = abmplot(model; plotkwargs...)
+    
+    step!(model, 5)
+    plt2, _ = abmplot(model; heatarray = :temperature, plotkwargs...)
+    
+    step!(model, 40)
+    plt3, _ = abmplot(model; heatarray = :temperature, plotkwargs...)
+    
+    plt1_name = savename("daisyworld", params) * "_step01.png"
+    plt2_name = savename("daisyworld", params) * "_step05.png"
+    plt3_name = savename("daisyworld", params) * "_step40.png"
+    
+    save(plotsdir(plt1_name), plt1)
+    save(plotsdir(plt2_name), plt2)
+    save(plotsdir(plt3_name), plt3)
+end
