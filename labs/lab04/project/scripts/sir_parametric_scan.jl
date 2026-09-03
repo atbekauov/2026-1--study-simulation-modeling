@@ -1,0 +1,84 @@
+# # Полное параметрическое сканирование SIR модели
+# 
+# Перебирает все комбинации параметров и сохраняет результаты.
+# Параметры для сканирования: β_und, detection_time, death_rate, infection_period, reinfection_probability.
+
+using DrWatson
+@quickactivate "project"
+using Agents, DataFrames, CSV, Random
+include(srcdir("sir_model.jl"))
+
+# Словарь с диапазонами параметров для сканирования.
+
+param_dict = Dict(
+    :β_und => [0.3, 0.5, 0.7],
+    :detection_time => [3, 7, 14],
+    :death_rate => [0.01, 0.02, 0.05],
+    :infection_period => [14, 21],
+    :reinfection_probability => [0.0, 0.1],
+    :Ns => [[1000, 1000, 1000]],
+    :Is => [[0, 0, 1]],
+    :n_steps => 100,
+)
+
+# Генерация всех комбинаций параметров.
+
+params_list = dict_list(param_dict)
+results = []
+
+# Основной цикл по всем комбинациям.
+
+for (i, params) in enumerate(params_list)
+    println("[$i/$(length(params_list))] β=$(params[:β_und][1]), det_time=$(params[:detection_time]), death_rate=$(params[:death_rate])")
+    
+    β_und = fill(params[:β_und][1], 3)
+    β_det = β_und ./ 10
+    seed = 42 + i
+    
+    model = initialize_sir(;
+        Ns = params[:Ns],
+        β_und = β_und,
+        β_det = β_det,
+        infection_period = params[:infection_period],
+        detection_time = params[:detection_time],
+        death_rate = params[:death_rate],
+        reinfection_probability = params[:reinfection_probability],
+        Is = params[:Is],
+        seed = seed,
+    )
+    
+    infected_frac(model) = count(a.status == :I for a in allagents(model)) / nagents(model)
+    peak = 0.0
+    
+    for step = 1:params[:n_steps]
+        Agents.step!(model, 1)
+        frac = infected_frac(model)
+        if frac > peak
+            peak = frac
+        end
+    end
+    
+    final_deaths = sum(params[:Ns]) - nagents(model)
+    final_recovered = recovered_count(model)
+    
+    push!(results, Dict(
+        :β => params[:β_und][1],
+        :detection_time => params[:detection_time],
+        :death_rate => params[:death_rate],
+        :infection_period => params[:infection_period],
+        :reinfection_probability => params[:reinfection_probability],
+        :peak => peak,
+        :deaths => final_deaths,
+        :recovered => final_recovered,
+    ))
+end
+
+# Сохранение результатов в CSV.
+
+df = DataFrame(results)
+CSV.write(datadir("sir_parametric_scan.csv"), df)
+
+println("\nГотово! Результаты сохранены в data/sir_parametric_scan.csv")
+println("Всего экспериментов: $(length(results))")
+
+
